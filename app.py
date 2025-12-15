@@ -9,15 +9,47 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "changeit")
 
 BOOKS_FILE = Path(__file__).parent / "db.json"
 
+# replace the existing load_books and save_books with this version
+
 def load_books():
+    """
+    Load and return a list of books. Handles these cases:
+    - missing file -> []
+    - file contains a JSON list -> return it
+    - file contains a JSON object with "books": [...] -> return that list
+    - file contains a JSON object representing a single book -> return [obj]
+    - any parse error -> []
+    """
     if not BOOKS_FILE.exists():
         return []
     try:
-        return json.loads(BOOKS_FILE.read_text(encoding="utf-8") or "[]")
+        data = json.loads(BOOKS_FILE.read_text(encoding="utf-8") or "[]")
     except Exception:
         return []
 
+    # Normalize to list
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        # common pattern: { "books": [ ... ] }
+        books_list = data.get("books")
+        if isinstance(books_list, list):
+            return books_list
+        # otherwise wrap single object into a list
+        return [data]
+    # unexpected type -> return empty list
+    return []
+
 def save_books(books):
+    """
+    Save books to the books file. Ensures a JSON list is written.
+    If a single dict is passed, wrap it into a list.
+    """
+    if isinstance(books, dict):
+        books = [books]
+    if not isinstance(books, list):
+        # best-effort conversion
+        books = list(books)
     BOOKS_FILE.write_text(json.dumps(books, ensure_ascii=False, indent=2), encoding="utf-8")
 
 @app.route("/")
