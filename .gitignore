@@ -1,0 +1,23 @@
+# .gitignore for simple-bookrecord-app
+__pycache__/
+*.pyc
+data/
+.env
+.vscode/
+.DS_Store
+.idea/
+instance/
+*.sqlite3
+logs/
+*.log
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+migrations/
+.envrc
+*.egg-info/
+dist/
+build/
+venv/
+.env/
