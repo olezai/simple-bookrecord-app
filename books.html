@@ -1,93 +1,94 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Book Recorder</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    label { display: block; margin: 8px 0; }
-    input[type="text"] { padding: 6px; width: 100%; max-width: 480px; box-sizing: border-box; }
-    button { margin: 8px 6px 8px 0; padding: 8px 12px; }
-    #message { margin-top: 8px; min-height: 18px; }
-    ul { margin-top: 12px; }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0;
+    }
+
+    input[type="text"] {
+      padding: 6px;
+      width: 100%;
+      max-width: 480px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin: 8px 6px 8px 0;
+      padding: 8px 12px;
+    }
+
+    #message {
+      margin-top: 8px;
+      min-height: 18px;
+    }
+
+    ul {
+      margin-top: 12px;
+    }
+
+    .flash-success {
+      color: green;
+    }
+
+    .flash-error {
+      color: crimson;
+    }
   </style>
 </head>
+
 <body>
   <h1>Book Recorder</h1>
 
-  <label>
-    Book title:
-    <input id="title" type="text" placeholder="Enter book title" />
-  </label>
-
-  <label>
-    Author:
-    <input id="author" type="text" placeholder="Enter author name" />
-  </label>
-
-  <div>
-    <button id="addBtn">Add Book</button>
-    <button id="listBtn">List Books</button>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div id="message">
+    {% for category, msg in messages %}
+    <div class="flash-{{ 'success' if category=='success' else 'error' }}">{{ msg }}</div>
+    {% endfor %}
   </div>
+  {% endif %}
+  {% endwith %}
 
-  <div id="message" aria-live="polite"></div>
+  <form method="post" action="{{ url_for('add') }}">
+    <label>
+      Book title:
+      <input id="title" name="title" type="text" placeholder="Enter book title" />
+    </label>
 
-  <ul id="booksList" aria-live="polite"></ul>
+    <label>
+      Author:
+      <input id="author" name="author" type="text" placeholder="Enter author name" />
+    </label>
 
-  <script>
-    const STORAGE_KEY = 'books';
+    <div>
+      <button type="submit">Add Book</button>
+      <a href="{{ url_for('books') }}"><button type="button">List Books</button></a>
+    </div>
+  </form>
 
-    function loadBooks() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      } catch (e) {
-        return [];
-      }
-    }
+  <ul id="booksList" aria-live="polite">
+    {% if not books %}
+    <li>No books added yet.</li>
+    {% else %}
+    {% for b in books %}
+    <li>{{ b.title }} — {{ b.author }}</li>
+    {% endfor %}
+    {% endif %}
+  </ul>
 
-    function saveBooks(books) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-    }
-
-    function renderBooks() {
-      const list = document.getElementById('booksList');
-      list.innerHTML = '';
-      const books = loadBooks();
-      if (!books || books.length === 0) {
-        list.innerHTML = '<li>No books added yet.</li>';
-        return;
-      }
-      books.forEach((b, i) => {
-        const li = document.createElement('li');
-        li.textContent = `${b.title} — ${b.author}`;
-        list.appendChild(li);
-      });
-    }
-
-    document.getElementById('addBtn').addEventListener('click', () => {
-      const title = document.getElementById('title').value.trim();
-      const author = document.getElementById('author').value.trim();
-      const msg = document.getElementById('message');
-      if (!title || !author) {
-        msg.textContent = 'Please enter both title and author.';
-        msg.style.color = 'crimson';
-        return;
-      }
-      const books = loadBooks();
-      books.push({ title, author });
-      saveBooks(books);
-      msg.textContent = 'Book added.';
-      msg.style.color = 'green';
-      document.getElementById('title').value = '';
-      document.getElementById('author').value = '';
-      renderBooks();
-    });
-
-    document.getElementById('listBtn').addEventListener('click', renderBooks);
-
-    // Render existing books on load
-    window.addEventListener('load', renderBooks);
-  </script>
 </body>
+
 </html>

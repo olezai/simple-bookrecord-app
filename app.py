@@ -1,25 +1,46 @@
-from flask import Flask, jsonify
-from tinydb import TinyDB, Query
+from flask import Flask, render_template, request, redirect, url_for, flash
+import json
+from pathlib import Path
+import os
 
 app = Flask(__name__)
-db = TinyDB('db.json')
+# In production, set a secure secret key via environment variable:
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "changeit")
 
-@app.route('/')
-def welcome():
-  return 'Welcome to the Book Record App!'
+BOOKS_FILE = Path(__file__).parent / "db.json"
 
-@app.route('/health')
-def health_check():
-  return jsonify({'status': 'healthy', 'service': 'bookrecord-app'})
+def load_books():
+    if not BOOKS_FILE.exists():
+        return []
+    try:
+        return json.loads(BOOKS_FILE.read_text(encoding="utf-8") or "[]")
+    except Exception:
+        return []
 
-@app.route('/add/<title>/<author>')
-def add_book(title, author):
-  db.insert({'title': title, 'author': author})
-  return jsonify({'status': 'successful', 'title': title, 'author': author})
+def save_books(books):
+    BOOKS_FILE.write_text(json.dumps(books, ensure_ascii=False, indent=2), encoding="utf-8")
 
-@app.route('/books')
-def list_books():
-  return jsonify(db.all())
+@app.route("/")
+def index():
+    return redirect(url_for("books"))
 
-if __name__ == '__main__':
-  app.run(debug=True, port=5001)
+@app.route("/books")
+def books():
+    books = load_books()
+    return render_template("books.html", books=books)
+
+@app.route("/add", methods=["POST"])
+def add():
+    title = request.form.get("title", "").strip()
+    author = request.form.get("author", "").strip()
+    if not title or not author:
+        flash("Please enter both title and author.", "error")
+        return redirect(url_for("books"))
+    books = load_books()
+    books.append({"title": title, "author": author})
+    save_books(books)
+    flash("Book added.", "success")
+    return redirect(url_for("books"))
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5001)
